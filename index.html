@@ -7,14 +7,15 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); text-align: center; padding: 20px; }
-        .btn { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; margin-top: 20px; cursor: pointer; }
+        .btn { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; margin-top: 20px; cursor: pointer; transition: background-color 0.3s; }
+        .btn.success { background-color: #4caf50; } /* Зеленый цвет при успехе */
     </style>
 </head>
 <body>
     <div style="font-size: 60px;">🚀</div>
     <h2>Подписка готова</h2>
     <p>Нажми кнопку ниже. Ссылка скопируется, и откроется приложение.</p>
-    <button class="btn" onclick="connect()">СКОПИРОВАТЬ И ОТКРЫТЬ</button>
+    <button id="mainBtn" class="btn" onclick="connect()">СКОПИРОВАТЬ И ОТКРЫТЬ</button>
 
     <script>
         const WebApp = window.Telegram.WebApp;
@@ -30,128 +31,57 @@
                 return;
             }
 
-            // 1. ИДЕАЛЬНОЕ КОПИРОВАНИЕ (Обходит блокировки iOS и Android)
-            const textArea = document.createElement('textarea');
-            textArea.value = subUrl;
-            textArea.setAttribute('readonly', ''); // Чтобы не вылезала клавиатура
-            textArea.style.position = 'absolute';
-            textArea.style.opacity = '0'; // Делаем прозрачным, но НЕ убираем за экран
-            document.body.appendChild(textArea);
-            
-            textArea.select();
-            textArea.setSelectionRange(0, 99999); // Обязательно для iOS
-            
-            try {
-                document.execCommand('copy');
-                if (WebApp.HapticFeedback) {
-                    WebApp.HapticFeedback.notificationOccurred('success'); // Вибрация
-                }
-            } catch (err) {
-                console.error("Ошибка копирования: ", err);
-            }
-            document.body.removeChild(textArea);
+            // Функция резервного копирования
+            const copyFallback = () => {
+                const textArea = document.createElement('textarea');
+                textArea.value = subUrl;
+                textArea.setAttribute('readonly', '');
+                textArea.style.position = 'absolute';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                textArea.setSelectionRange(0, 99999);
+                try { document.execCommand('copy'); } catch (err) {}
+                document.body.removeChild(textArea);
+                proceedToApp();
+            };
 
-            // 2. ОТКРЫТИЕ ПРИЛОЖЕНИЯ ЧЕРЕЗ TELEGRAM API
-            const ua = navigator.userAgent.toLowerCase();
-            const isiOS = /iphone|ipad|ipod/.test(ua);
-            
-            // Мы используем WebApp.openLink, так как Telegram разрешает этот метод
-            if (isiOS) {
-                WebApp.openLink("happ://");
+            // Современный метод копирования с fallback'ом
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(subUrl)
+                    .then(proceedToApp)
+                    .catch(copyFallback);
             } else {
-                WebApp.openLink("v2rayng://");
+                copyFallback();
             }
-            
-            // Закрываем шторку через секунду после нажатия
-            setTimeout(() => {
-                WebApp.close();
-            }, 1000);
-        }
-    </script>
-</body>
-</html>        h2 { margin: 0 0 10px 0; font-size: 24px; }
-
-        p {
-            font-size: 16px;
-            color: var(--hint-color);
-            line-height: 1.4;
-            margin-bottom: 30px;
-            max-width: 280px;
         }
 
-        .btn {
-            background-color: var(--button-color);
-            color: var(--button-text);
-            border: none;
-            border-radius: 14px;
-            padding: 18px 24px;
-            font-size: 18px;
-            font-weight: 600;
-            width: 100%;
-            max-width: 320px;
-            cursor: pointer;
-        }
-
-        .btn:active { opacity: 0.9; }
-    </style>
-</head>
-<body>
-
-    <div class="icon">🚀</div>
-    <h2>Почти готово!</h2>
-    <p>Нажми на кнопку ниже: ссылка скопируется, и откроется приложение VPN.</p>
-
-    <button class="btn" onclick="handleConnect()">СКОПИРОВАТЬ И ОТКРЫТЬ</button>
-
-    <script>
-        const WebApp = window.Telegram.WebApp;
-        WebApp.ready();
-        WebApp.expand();
-
-        function handleConnect() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const subUrl = urlParams.get('sub');
-
-            if (!subUrl || subUrl === 'null') {
-                WebApp.showAlert("Ошибка: Ключ не найден.");
-                return;
-            }
-
-            // Копирование
-            const textArea = document.createElement("textarea");
-            textArea.value = subUrl;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-
+        function proceedToApp() {
+            // Вибрация
             if (WebApp.HapticFeedback) {
                 WebApp.HapticFeedback.notificationOccurred('success');
             }
 
-            redirectUser();
-        }
+            // Визуальный отклик (меняем кнопку)
+            const btn = document.getElementById('mainBtn');
+            btn.classList.add('success');
+            btn.innerHTML = "✅ СКОПИРОВАНО!<br><span style='font-size:14px; font-weight:normal;'>Открываем приложение...</span>";
 
-        function redirectUser() {
-            const ua = navigator.userAgent || navigator.vendor || window.opera;
+            // Перенаправление (без использования ломающего WebApp.openLink)
+            const ua = navigator.userAgent.toLowerCase();
+            const isiOS = /iphone|ipad|ipod/.test(ua);
             
-            // Используем конструктор RegExp, чтобы избежать ошибки токенизации "/"
-            const isiOS = new RegExp('iPad|iPhone|iPod').test(ua) && !window.MSStream;
-            const isAndroid = new RegExp('android', 'i').test(ua);
-
             if (isiOS) {
                 window.location.href = "happ://";
-                setTimeout(function() {
-                    window.location.href = "https://apps.apple.com/app/id1626108138";
-                }, 1500);
-            } else if (isAndroid) {
-                window.location.href = "v2rayng://";
-                setTimeout(function() {
-                    window.location.href = "https://play.google.com/store/apps/details?id=com.v2ray.ang";
-                }, 1500);
+                // Ждем 2 секунды, если приложение не открылось - кидаем в App Store
+                setTimeout(() => { window.location.href = "https://apps.apple.com/app/id1626108138"; }, 2000);
             } else {
-                WebApp.showAlert("Ссылка скопирована! Вставь её в приложение.");
+                window.location.href = "v2rayng://";
+                setTimeout(() => { window.location.href = "https://play.google.com/store/apps/details?id=com.v2ray.ang"; }, 2000);
             }
+            
+            // ВАЖНО: Мы больше НЕ вызываем WebApp.close(). 
+            // ОС телефона сама закроет или свернет окно, когда перейдет в VPN-приложение.
         }
     </script>
 </body>
