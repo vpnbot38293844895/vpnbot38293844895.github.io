@@ -7,20 +7,24 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); text-align: center; padding: 20px; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; }
-        .btn { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; max-width: 320px; margin-top: 20px; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
+        .btn { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; max-width: 320px; margin-top: 15px; cursor: pointer; transition: transform 0.1s; display: flex; justify-content: center; align-items: center; text-decoration: none; box-sizing: border-box; }
         .btn:active { transform: scale(0.95); }
         .btn.success { background-color: #4caf50; }
         .btn.download { background-color: #ff9800; }
-        .hint { margin-top: 15px; font-size: 14px; color: var(--tg-theme-hint-color, #999); opacity: 0; transition: opacity 0.5s; }
+        .hint { margin-top: 15px; font-size: 14px; color: var(--tg-theme-hint-color, #999); display: none; }
     </style>
 </head>
 <body>
     <div style="font-size: 60px;">🚀</div>
-    <h2>Подписка готова</h2>
-    <p style="color: var(--tg-theme-hint-color, #999);">Нажми кнопку ниже. Ключ скопируется, и откроется VPN.</p>
+    <h2 id="title">Подписка готова</h2>
+    <p id="desc" style="color: var(--tg-theme-hint-color, #999);">Нажми кнопку ниже. Ключ скопируется, и откроется VPN.</p>
     
     <button id="mainBtn" class="btn" onclick="connect()">СКОПИРОВАТЬ И ОТКРЫТЬ</button>
-    <div id="hintText" class="hint">Если приложение не открылось, скачай его по кнопке выше.</div>
+    
+    <a id="openAppBtn" class="btn success" style="display: none;">👉 ОТКРЫТЬ VPN</a>
+    <button id="downloadBtn" class="btn download" style="display: none;">📥 СКАЧАТЬ ПРИЛОЖЕНИЕ</button>
+    
+    <div id="hintText" class="hint">Если приложение не установлено, скачай его по кнопке выше.</div>
 
     <script>
         const WebApp = window.Telegram.WebApp;
@@ -40,7 +44,7 @@
                 return;
             }
 
-            // 1. НАДЕЖНОЕ КОПИРОВАНИЕ
+            // 1. КОПИРОВАНИЕ КЛЮЧА
             const textArea = document.createElement('textarea');
             textArea.value = subUrl;
             textArea.setAttribute('readonly', '');
@@ -56,52 +60,51 @@
             } catch (err) {}
             document.body.removeChild(textArea);
 
-            // 2. ПРЯМОЙ ВЫЗОВ ПРИЛОЖЕНИЯ
+            // 2. ПОДГОТОВКА ССЫЛОК
             const ua = navigator.userAgent.toLowerCase();
             const isiOS = /iphone|ipad|ipod/.test(ua);
             
-            // Нативные схемы (iOS -> Happ, Android -> v2rayNG)
             const appScheme = isiOS ? "happ://" : "v2rayng://";
-            // ПРАВИЛЬНЫЙ ID Happ в App Store: 6504287215
             const storeLink = isiOS ? "https://apps.apple.com/app/id6504287215" : "https://play.google.com/store/apps/details?id=com.v2ray.ang";
 
-            // Вызываем приложение напрямую
+            // 3. ПЫТАЕМСЯ ОТКРЫТЬ АВТОМАТИЧЕСКИ
             window.location.href = appScheme;
             
-            // 3. УМНЫЙ FALLBACK (Отслеживаем статус)
-            const btn = document.getElementById('mainBtn');
-            btn.classList.add('success');
-            btn.innerHTML = "✅ ОТКРЫВАЕМ...";
+            // 4. МЕНЯЕМ ИНТЕРФЕЙС НА СЛУЧАЙ БЛОКИРОВКИ TELEGRAM
+            const mainBtn = document.getElementById('mainBtn');
+            mainBtn.classList.add('success');
+            mainBtn.innerHTML = "✅ СКОПИРОВАНО...";
             isConnecting = true;
 
-            // Следим, ушел ли пользователь из Telegram
             let appOpened = false;
             window.addEventListener('blur', () => appOpened = true);
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) appOpened = true;
             });
 
-            // Ждем 2 секунды. Если Telegram всё еще на экране — значит, Happ не установлен
+            // Ждем 1.5 секунды. Если Telegram заблокировал переход, выдаем ручные кнопки
             setTimeout(() => {
                 if (!appOpened && !document.hidden) {
-                    // Превращаем кнопку в ссылку на скачивание
-                    btn.classList.remove('success');
-                    btn.classList.add('download');
-                    btn.innerHTML = "📥 СКАЧАТЬ ПРИЛОЖЕНИЕ";
-                    document.getElementById('hintText').style.opacity = "1";
+                    // Прячем исходную кнопку
+                    mainBtn.style.display = "none";
                     
+                    document.getElementById('title').innerText = "Ключ в буфере!";
+                    document.getElementById('desc').innerText = "Нажми кнопку ниже, чтобы открыть VPN или скачать приложение.";
+                    
+                    // Показываем нативную кнопку-ссылку (она всегда пробивает защиту iOS)
+                    const openAppBtn = document.getElementById('openAppBtn');
+                    openAppBtn.href = appScheme;
+                    openAppBtn.style.display = "flex";
+                    
+                    // Показываем кнопку скачивания через безопасный метод Telegram
+                    const downloadBtn = document.getElementById('downloadBtn');
+                    downloadBtn.onclick = () => { WebApp.openLink(storeLink); };
+                    downloadBtn.style.display = "flex";
+                    
+                    document.getElementById('hintText').style.display = "block";
                     if (WebApp.HapticFeedback) WebApp.HapticFeedback.notificationOccurred('warning');
-                    
-                    // Переназначаем клик по кнопке — теперь она официально открывает магазин
-                    btn.onclick = () => { WebApp.openLink(storeLink); };
-                    isConnecting = false;
-                } else {
-                    // Приложение успешно открылось
-                    btn.innerHTML = "СКОПИРОВАТЬ СНОВА";
-                    btn.classList.remove('success');
-                    isConnecting = false;
                 }
-            }, 2000);
+            }, 1500);
         }
     </script>
 </body>
