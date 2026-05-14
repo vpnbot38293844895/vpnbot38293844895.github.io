@@ -7,7 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); text-align: center; padding: 20px; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; }
-        .btn { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; max-width: 320px; margin-top: 20px; cursor: pointer; transition: background-color 0.3s; }
+        .btn { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; max-width: 320px; margin-top: 20px; cursor: pointer; transition: background-color 0.1s; }
         .btn.success { background-color: #4caf50; }
     </style>
 </head>
@@ -31,47 +31,38 @@
                 return;
             }
 
-            const copyFallback = () => {
-                const textArea = document.createElement('textarea');
-                textArea.value = subUrl;
-                textArea.setAttribute('readonly', '');
-                textArea.style.position = 'absolute';
-                textArea.style.opacity = '0';
-                document.body.appendChild(textArea);
-                textArea.select();
-                textArea.setSelectionRange(0, 99999);
-                try { document.execCommand('copy'); } catch (err) {}
-                document.body.removeChild(textArea);
-                proceedToApp();
-            };
+            // 1. ЖЕЛЕЗОБЕТОННОЕ СИНХРОННОЕ КОПИРОВАНИЕ (БЕЗ PROMISE)
+            const textArea = document.createElement('textarea');
+            textArea.value = subUrl;
+            textArea.setAttribute('readonly', '');
+            textArea.style.position = 'absolute';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            textArea.setSelectionRange(0, 99999);
+            
+            try {
+                document.execCommand('copy');
+                if (WebApp.HapticFeedback) WebApp.HapticFeedback.notificationOccurred('success');
+            } catch (err) {}
+            
+            document.body.removeChild(textArea);
 
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(subUrl)
-                    .then(proceedToApp)
-                    .catch(copyFallback);
-            } else {
-                copyFallback();
-            }
-        }
-
-        function proceedToApp() {
-            if (WebApp.HapticFeedback) {
-                WebApp.HapticFeedback.notificationOccurred('success');
-            }
-
+            // 2. МЕНЯЕМ ВИЗУАЛ
             const btn = document.getElementById('mainBtn');
             btn.classList.add('success');
-            btn.innerHTML = "✅ СКОПИРОВАНО!<br><span style='font-size:14px; font-weight:normal;'>Открываем приложение...</span>";
+            btn.innerHTML = "✅ ОТКРЫВАЕМ...";
 
+            // 3. МГНОВЕННЫЙ РЕДИРЕКТ (Пока iOS еще считает, что это результат клика)
             const ua = navigator.userAgent.toLowerCase();
             const isiOS = /iphone|ipad|ipod/.test(ua);
             
             if (isiOS) {
                 window.location.href = "happ://";
-                setTimeout(() => { window.location.href = "https://apps.apple.com/app/id1626108138"; }, 2000);
+                setTimeout(() => { window.location.href = "https://apps.apple.com/app/id1626108138"; }, 2500);
             } else {
                 window.location.href = "v2rayng://";
-                setTimeout(() => { window.location.href = "https://play.google.com/store/apps/details?id=com.v2ray.ang"; }, 2000);
+                setTimeout(() => { window.location.href = "https://play.google.com/store/apps/details?id=com.v2ray.ang"; }, 2500);
             }
         }
     </script>
