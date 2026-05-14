@@ -1,54 +1,46 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Настройка VPN</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body { font-family: -apple-system, sans-serif; background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); text-align: center; padding: 20px; }
-        .btn { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; margin-top: 20px; cursor: pointer; }
-    </style>
-</head>
-<body>
-    <div style="font-size: 60px;">🚀</div>
-    <h2>Подписка готова</h2>
-    <p>Нажми кнопку ниже. Ссылка скопируется, и откроется приложение.</p>
-    <button class="btn" onclick="connect()">СКОПИРОВАТЬ И ОТКРЫТЬ</button>
+<script>
+    const WebApp = window.Telegram.WebApp;
+    WebApp.ready();
+    WebApp.expand();
 
-    <script>
-        const WebApp = window.Telegram.WebApp;
-        WebApp.ready();
-        WebApp.expand();
+    function connect() {
+        const params = new URLSearchParams(window.location.search);
+        // URLSearchParams уже декодирует строку, decodeURIComponent тут не нужен
+        const subUrl = params.get('sub');
 
-        function connect() {
-            const params = new URLSearchParams(window.location.search);
-            // Декодируем ссылку обратно
-            const subUrl = decodeURIComponent(params.get('sub'));
+        if (!subUrl || subUrl === 'null') {
+            WebApp.showAlert("Ошибка: Ключ не получен. Попробуй обновить профиль в боте.");
+            return;
+        }
 
-            if (!subUrl || subUrl === 'null') {
-                alert("Ошибка: Ссылка не получена");
-                return;
-            }
-
-            // Используем Telegram API для копирования (самый надежный способ в WebApp)
+        // Пытаемся скопировать через современный API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(subUrl).then(() => {
+                handleRedirection();
+            });
+        } else {
+            // Резервный метод копирования
             const input = document.createElement('input');
             input.value = subUrl;
             document.body.appendChild(input);
             input.select();
             document.execCommand('copy');
             document.body.removeChild(input);
-
-            // Пытаемся открыть приложение
-            const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            if (isiOS) {
-                window.location.href = "happ://";
-                setTimeout(() => { window.location.href = "https://apps.apple.com/app/id1626108138"; }, 1500);
-            } else {
-                window.location.href = "v2rayng://";
-                setTimeout(() => { window.location.href = "https://play.google.com/store/apps/details?id=com.v2ray.ang"; }, 1500);
-            }
+            handleRedirection();
         }
-    </script>
-</body>
-</html>
+    }
+
+    function handleRedirection() {
+        WebApp.HapticFeedback.notificationOccurred('success');
+        
+        const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isiOS) {
+            // Для iOS Happ открывается через ссылку на конфиг или просто в буфер
+            window.location.href = "happ://";
+            setTimeout(() => { window.location.href = "https://apps.apple.com/app/id1626108138"; }, 1500);
+        } else {
+            window.location.href = "v2rayng://";
+            setTimeout(() => { window.location.href = "https://play.google.com/store/apps/details?id=com.v2ray.ang"; }, 1500);
+        }
+    }
+</script>
