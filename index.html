@@ -3,38 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Настройка VPN — EM3 CLAN</title>
+    <title>Настройка VPN</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --bg-color: var(--tg-theme-bg-color, #ffffff);
-            --text-color: var(--tg-theme-text-color, #222222);
-            --hint-color: var(--tg-theme-hint-color, #707579);
-            --button-color: var(--tg-theme-button-color, #3390ec);
-            --button-text: var(--tg-theme-button-text-color, #ffffff);
-        }
+        body { font-family: -apple-system, sans-serif; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); text-align: center; padding: 20px; }
+        .btn { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; margin-top: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div style="font-size: 60px;">🚀</div>
+    <h2>Подписка готова</h2>
+    <p>Нажми кнопку ниже. Ссылка скопируется, и откроется приложение.</p>
+    <button class="btn" onclick="connect()">СКОПИРОВАТЬ И ОТКРЫТЬ</button>
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
+    <script>
+        const WebApp = window.Telegram.WebApp;
+        WebApp.ready();
+        WebApp.expand();
 
-        .icon {
-            font-size: 80px;
-            margin-bottom: 20px;
-        }
+        function connect() {
+            const params = new URLSearchParams(window.location.search);
+            const subUrl = params.get('sub');
 
-        h2 { margin: 0 0 10px 0; font-size: 24px; }
+            if (!subUrl || subUrl === 'null') {
+                WebApp.showAlert("Ошибка: Ключ не получен. Обнови профиль в боте.");
+                return;
+            }
+
+            // 1. ИДЕАЛЬНОЕ КОПИРОВАНИЕ (Обходит блокировки iOS и Android)
+            const textArea = document.createElement('textarea');
+            textArea.value = subUrl;
+            textArea.setAttribute('readonly', ''); // Чтобы не вылезала клавиатура
+            textArea.style.position = 'absolute';
+            textArea.style.opacity = '0'; // Делаем прозрачным, но НЕ убираем за экран
+            document.body.appendChild(textArea);
+            
+            textArea.select();
+            textArea.setSelectionRange(0, 99999); // Обязательно для iOS
+            
+            try {
+                document.execCommand('copy');
+                if (WebApp.HapticFeedback) {
+                    WebApp.HapticFeedback.notificationOccurred('success'); // Вибрация
+                }
+            } catch (err) {
+                console.error("Ошибка копирования: ", err);
+            }
+            document.body.removeChild(textArea);
+
+            // 2. ОТКРЫТИЕ ПРИЛОЖЕНИЯ ЧЕРЕЗ TELEGRAM API
+            const ua = navigator.userAgent.toLowerCase();
+            const isiOS = /iphone|ipad|ipod/.test(ua);
+            
+            // Мы используем WebApp.openLink, так как Telegram разрешает этот метод
+            if (isiOS) {
+                WebApp.openLink("happ://");
+            } else {
+                WebApp.openLink("v2rayng://");
+            }
+            
+            // Закрываем шторку через секунду после нажатия
+            setTimeout(() => {
+                WebApp.close();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>        h2 { margin: 0 0 10px 0; font-size: 24px; }
 
         p {
             font-size: 16px;
