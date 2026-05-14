@@ -1,46 +1,123 @@
-<script>
-    const WebApp = window.Telegram.WebApp;
-    WebApp.ready();
-    WebApp.expand();
-
-    function connect() {
-        const params = new URLSearchParams(window.location.search);
-        // URLSearchParams уже декодирует строку, decodeURIComponent тут не нужен
-        const subUrl = params.get('sub');
-
-        if (!subUrl || subUrl === 'null') {
-            WebApp.showAlert("Ошибка: Ключ не получен. Попробуй обновить профиль в боте.");
-            return;
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Настройка VPN — EM3 CLAN</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #ffffff);
+            --text-color: var(--tg-theme-text-color, #222222);
+            --hint-color: var(--tg-theme-hint-color, #707579);
+            --button-color: var(--tg-theme-button-color, #3390ec);
+            --button-text: var(--tg-theme-button-text-color, #ffffff);
         }
 
-        // Пытаемся скопировать через современный API
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(subUrl).then(() => {
-                handleRedirection();
-            });
-        } else {
-            // Резервный метод копирования
-            const input = document.createElement('input');
-            input.value = subUrl;
-            document.body.appendChild(input);
-            input.select();
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        h2 { margin: 0 0 10px 0; font-size: 24px; }
+
+        p {
+            font-size: 16px;
+            color: var(--hint-color);
+            line-height: 1.4;
+            margin-bottom: 30px;
+            max-width: 280px;
+        }
+
+        .btn {
+            background-color: var(--button-color);
+            color: var(--button-text);
+            border: none;
+            border-radius: 14px;
+            padding: 18px 24px;
+            font-size: 18px;
+            font-weight: 600;
+            width: 100%;
+            max-width: 320px;
+            cursor: pointer;
+        }
+
+        .btn:active { opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+    <div class="icon">🚀</div>
+    <h2>Почти готово!</h2>
+    <p>Нажми на кнопку ниже: ссылка скопируется, и откроется приложение VPN.</p>
+
+    <button class="btn" onclick="handleConnect()">СКОПИРОВАТЬ И ОТКРЫТЬ</button>
+
+    <script>
+        const WebApp = window.Telegram.WebApp;
+        WebApp.ready();
+        WebApp.expand();
+
+        function handleConnect() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const subUrl = urlParams.get('sub');
+
+            if (!subUrl || subUrl === 'null') {
+                WebApp.showAlert("Ошибка: Ключ не найден.");
+                return;
+            }
+
+            // Копирование
+            const textArea = document.createElement("textarea");
+            textArea.value = subUrl;
+            document.body.appendChild(textArea);
+            textArea.select();
             document.execCommand('copy');
-            document.body.removeChild(input);
-            handleRedirection();
-        }
-    }
+            document.body.removeChild(textArea);
 
-    function handleRedirection() {
-        WebApp.HapticFeedback.notificationOccurred('success');
-        
-        const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if (isiOS) {
-            // Для iOS Happ открывается через ссылку на конфиг или просто в буфер
-            window.location.href = "happ://";
-            setTimeout(() => { window.location.href = "https://apps.apple.com/app/id1626108138"; }, 1500);
-        } else {
-            window.location.href = "v2rayng://";
-            setTimeout(() => { window.location.href = "https://play.google.com/store/apps/details?id=com.v2ray.ang"; }, 1500);
+            if (WebApp.HapticFeedback) {
+                WebApp.HapticFeedback.notificationOccurred('success');
+            }
+
+            redirectUser();
         }
-    }
-</script>
+
+        function redirectUser() {
+            const ua = navigator.userAgent || navigator.vendor || window.opera;
+            
+            // Используем конструктор RegExp, чтобы избежать ошибки токенизации "/"
+            const isiOS = new RegExp('iPad|iPhone|iPod').test(ua) && !window.MSStream;
+            const isAndroid = new RegExp('android', 'i').test(ua);
+
+            if (isiOS) {
+                window.location.href = "happ://";
+                setTimeout(function() {
+                    window.location.href = "https://apps.apple.com/app/id1626108138";
+                }, 1500);
+            } else if (isAndroid) {
+                window.location.href = "v2rayng://";
+                setTimeout(function() {
+                    window.location.href = "https://play.google.com/store/apps/details?id=com.v2ray.ang";
+                }, 1500);
+            } else {
+                WebApp.showAlert("Ссылка скопирована! Вставь её в приложение.");
+            }
+        }
+    </script>
+</body>
+</html>
