@@ -21,7 +21,7 @@
     
     <button id="mainBtn" class="btn" onclick="connect()">СКОПИРОВАТЬ И ОТКРЫТЬ</button>
     
-    <a id="openAppBtn" class="btn success" style="display: none;">👉 ОТКРЫТЬ VPN</a>
+    <a id="openAppBtn" class="btn success" style="display: none;" target="_blank" rel="noopener noreferrer">👉 ОТКРЫТЬ VPN</a>
     <button id="downloadBtn" class="btn download" style="display: none;">📥 СКАЧАТЬ ПРИЛОЖЕНИЕ</button>
     
     <div id="hintText" class="hint">Если приложение не установлено, скачай его по кнопке выше.</div>
@@ -70,7 +70,7 @@
             // 3. ПЫТАЕМСЯ ОТКРЫТЬ АВТОМАТИЧЕСКИ
             window.location.href = appScheme;
             
-            // 4. МЕНЯЕМ ИНТЕРФЕЙС НА СЛУЧАЙ БЛОКИРОВКИ TELEGRAM
+            // 4. МЕНЯЕМ ИНТЕРФЕЙС НА СЛУЧАЙ БЛОКИРОВКИ
             const mainBtn = document.getElementById('mainBtn');
             mainBtn.classList.add('success');
             mainBtn.innerHTML = "✅ СКОПИРОВАНО...";
@@ -82,21 +82,20 @@
                 if (document.hidden) appOpened = true;
             });
 
-            // Ждем 1.5 секунды. Если Telegram заблокировал переход, выдаем ручные кнопки
+            // Ждем 1.5 секунды
             setTimeout(() => {
                 if (!appOpened && !document.hidden) {
-                    // Прячем исходную кнопку
                     mainBtn.style.display = "none";
                     
                     document.getElementById('title').innerText = "Ключ в буфере!";
                     document.getElementById('desc').innerText = "Нажми кнопку ниже, чтобы открыть VPN или скачать приложение.";
                     
-                    // Показываем нативную кнопку-ссылку (она всегда пробивает защиту iOS)
                     const openAppBtn = document.getElementById('openAppBtn');
                     openAppBtn.href = appScheme;
                     openAppBtn.style.display = "flex";
+                    // Закрываем шторку при клике, так как юзер переходит в другое приложение
+                    openAppBtn.onclick = () => { setTimeout(() => WebApp.close(), 500); };
                     
-                    // Показываем кнопку скачивания через безопасный метод Telegram
                     const downloadBtn = document.getElementById('downloadBtn');
                     downloadBtn.onclick = () => { WebApp.openLink(storeLink); };
                     downloadBtn.style.display = "flex";
