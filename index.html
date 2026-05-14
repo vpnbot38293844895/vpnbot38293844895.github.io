@@ -6,15 +6,15 @@
     <title>Настройка VPN</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); text-align: center; padding: 20px; }
-        .btn { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; margin-top: 20px; cursor: pointer; transition: background-color 0.3s; }
-        .btn.success { background-color: #4caf50; } /* Зеленый цвет при успехе */
+        body { font-family: -apple-system, sans-serif; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); text-align: center; padding: 20px; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; }
+        .btn { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; max-width: 320px; margin-top: 20px; cursor: pointer; transition: background-color 0.3s; }
+        .btn.success { background-color: #4caf50; }
     </style>
 </head>
 <body>
     <div style="font-size: 60px;">🚀</div>
     <h2>Подписка готова</h2>
-    <p>Нажми кнопку ниже. Ссылка скопируется, и откроется приложение.</p>
+    <p style="color: var(--tg-theme-hint-color, #999);">Нажми кнопку ниже. Ссылка скопируется, и откроется приложение.</p>
     <button id="mainBtn" class="btn" onclick="connect()">СКОПИРОВАТЬ И ОТКРЫТЬ</button>
 
     <script>
@@ -31,7 +31,6 @@
                 return;
             }
 
-            // Функция резервного копирования
             const copyFallback = () => {
                 const textArea = document.createElement('textarea');
                 textArea.value = subUrl;
@@ -46,7 +45,6 @@
                 proceedToApp();
             };
 
-            // Современный метод копирования с fallback'ом
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(subUrl)
                     .then(proceedToApp)
@@ -57,31 +55,24 @@
         }
 
         function proceedToApp() {
-            // Вибрация
             if (WebApp.HapticFeedback) {
                 WebApp.HapticFeedback.notificationOccurred('success');
             }
 
-            // Визуальный отклик (меняем кнопку)
             const btn = document.getElementById('mainBtn');
             btn.classList.add('success');
             btn.innerHTML = "✅ СКОПИРОВАНО!<br><span style='font-size:14px; font-weight:normal;'>Открываем приложение...</span>";
 
-            // Перенаправление (без использования ломающего WebApp.openLink)
             const ua = navigator.userAgent.toLowerCase();
             const isiOS = /iphone|ipad|ipod/.test(ua);
             
             if (isiOS) {
                 window.location.href = "happ://";
-                // Ждем 2 секунды, если приложение не открылось - кидаем в App Store
                 setTimeout(() => { window.location.href = "https://apps.apple.com/app/id1626108138"; }, 2000);
             } else {
                 window.location.href = "v2rayng://";
                 setTimeout(() => { window.location.href = "https://play.google.com/store/apps/details?id=com.v2ray.ang"; }, 2000);
             }
-            
-            // ВАЖНО: Мы больше НЕ вызываем WebApp.close(). 
-            // ОС телефона сама закроет или свернет окно, когда перейдет в VPN-приложение.
         }
     </script>
 </body>
