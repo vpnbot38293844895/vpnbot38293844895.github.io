@@ -7,22 +7,31 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); text-align: center; padding: 20px; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; }
-        .btn { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; max-width: 320px; margin-top: 20px; cursor: pointer; transition: background-color 0.1s; }
+        .btn { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: bold; width: 100%; max-width: 320px; margin-top: 20px; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
+        .btn:active { transform: scale(0.95); }
         .btn.success { background-color: #4caf50; }
+        .btn.download { background-color: #ff9800; }
+        .hint { margin-top: 15px; font-size: 14px; color: var(--tg-theme-hint-color, #999); opacity: 0; transition: opacity 0.5s; }
     </style>
 </head>
 <body>
     <div style="font-size: 60px;">🚀</div>
     <h2>Подписка готова</h2>
-    <p style="color: var(--tg-theme-hint-color, #999);">Нажми кнопку ниже. Ссылка скопируется, и откроется приложение.</p>
+    <p style="color: var(--tg-theme-hint-color, #999);">Нажми кнопку ниже. Ключ скопируется, и откроется VPN.</p>
+    
     <button id="mainBtn" class="btn" onclick="connect()">СКОПИРОВАТЬ И ОТКРЫТЬ</button>
+    <div id="hintText" class="hint">Если приложение не открылось, скачай его по кнопке выше.</div>
 
     <script>
         const WebApp = window.Telegram.WebApp;
         WebApp.ready();
         WebApp.expand();
 
+        let isConnecting = false;
+
         function connect() {
+            if (isConnecting) return;
+            
             const params = new URLSearchParams(window.location.search);
             const subUrl = params.get('sub');
 
@@ -31,7 +40,7 @@
                 return;
             }
 
-            // 1. СИНХРОННОЕ КОПИРОВАНИЕ
+            // 1. НАДЕЖНОЕ КОПИРОВАНИЕ
             const textArea = document.createElement('textarea');
             textArea.value = subUrl;
             textArea.setAttribute('readonly', '');
@@ -47,40 +56,52 @@
             } catch (err) {}
             document.body.removeChild(textArea);
 
-            // 2. ВИЗУАЛ
+            // 2. ПРЯМОЙ ВЫЗОВ ПРИЛОЖЕНИЯ
+            const ua = navigator.userAgent.toLowerCase();
+            const isiOS = /iphone|ipad|ipod/.test(ua);
+            
+            // Нативные схемы (iOS -> Happ, Android -> v2rayNG)
+            const appScheme = isiOS ? "happ://" : "v2rayng://";
+            // ПРАВИЛЬНЫЙ ID Happ в App Store: 6504287215
+            const storeLink = isiOS ? "https://apps.apple.com/app/id6504287215" : "https://play.google.com/store/apps/details?id=com.v2ray.ang";
+
+            // Вызываем приложение напрямую
+            window.location.href = appScheme;
+            
+            // 3. УМНЫЙ FALLBACK (Отслеживаем статус)
             const btn = document.getElementById('mainBtn');
             btn.classList.add('success');
             btn.innerHTML = "✅ ОТКРЫВАЕМ...";
+            isConnecting = true;
 
-            // 3. БЕСШОВНЫЙ РЕДИРЕКТ
-            const ua = navigator.userAgent.toLowerCase();
-            const isiOS = /iphone|ipad|ipod/.test(ua);
-            const appScheme = isiOS ? "happ://" : "v2rayng://";
-            const storeLink = isiOS ? "https://apps.apple.com/app/id1626108138" : "https://play.google.com/store/apps/details?id=com.v2ray.ang";
-
-            // Отслеживаем, показала ли iOS системное окно или свернулся ли Telegram
+            // Следим, ушел ли пользователь из Telegram
             let appOpened = false;
             window.addEventListener('blur', () => appOpened = true);
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) appOpened = true;
             });
 
-            // Пробиваем песочницу iOS
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = appScheme;
-            document.body.appendChild(iframe);
-
-            // Дублируем стандартным методом для страховки
-            setTimeout(() => { window.location.href = appScheme; }, 100);
-
-            // 4. ПЕРЕХОД В МАГАЗИН (если приложения нет)
+            // Ждем 2 секунды. Если Telegram всё еще на экране — значит, Happ не установлен
             setTimeout(() => {
-                // Если фокус на окне остался, значит приложение не запустилось
                 if (!appOpened && !document.hidden) {
-                    WebApp.openLink(storeLink);
+                    // Превращаем кнопку в ссылку на скачивание
+                    btn.classList.remove('success');
+                    btn.classList.add('download');
+                    btn.innerHTML = "📥 СКАЧАТЬ ПРИЛОЖЕНИЕ";
+                    document.getElementById('hintText').style.opacity = "1";
+                    
+                    if (WebApp.HapticFeedback) WebApp.HapticFeedback.notificationOccurred('warning');
+                    
+                    // Переназначаем клик по кнопке — теперь она официально открывает магазин
+                    btn.onclick = () => { WebApp.openLink(storeLink); };
+                    isConnecting = false;
+                } else {
+                    // Приложение успешно открылось
+                    btn.innerHTML = "СКОПИРОВАТЬ СНОВА";
+                    btn.classList.remove('success');
+                    isConnecting = false;
                 }
-            }, 2500);
+            }, 2000);
         }
     </script>
 </body>
