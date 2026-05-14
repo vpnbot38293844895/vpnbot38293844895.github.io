@@ -31,7 +31,7 @@
                 return;
             }
 
-            // 1. ЖЕЛЕЗОБЕТОННОЕ СИНХРОННОЕ КОПИРОВАНИЕ (БЕЗ PROMISE)
+            // 1. СИНХРОННОЕ КОПИРОВАНИЕ
             const textArea = document.createElement('textarea');
             textArea.value = subUrl;
             textArea.setAttribute('readonly', '');
@@ -45,25 +45,42 @@
                 document.execCommand('copy');
                 if (WebApp.HapticFeedback) WebApp.HapticFeedback.notificationOccurred('success');
             } catch (err) {}
-            
             document.body.removeChild(textArea);
 
-            // 2. МЕНЯЕМ ВИЗУАЛ
+            // 2. ВИЗУАЛ
             const btn = document.getElementById('mainBtn');
             btn.classList.add('success');
             btn.innerHTML = "✅ ОТКРЫВАЕМ...";
 
-            // 3. МГНОВЕННЫЙ РЕДИРЕКТ (Пока iOS еще считает, что это результат клика)
+            // 3. БЕСШОВНЫЙ РЕДИРЕКТ
             const ua = navigator.userAgent.toLowerCase();
             const isiOS = /iphone|ipad|ipod/.test(ua);
-            
-            if (isiOS) {
-                window.location.href = "happ://";
-                setTimeout(() => { window.location.href = "https://apps.apple.com/app/id1626108138"; }, 2500);
-            } else {
-                window.location.href = "v2rayng://";
-                setTimeout(() => { window.location.href = "https://play.google.com/store/apps/details?id=com.v2ray.ang"; }, 2500);
-            }
+            const appScheme = isiOS ? "happ://" : "v2rayng://";
+            const storeLink = isiOS ? "https://apps.apple.com/app/id1626108138" : "https://play.google.com/store/apps/details?id=com.v2ray.ang";
+
+            // Отслеживаем, показала ли iOS системное окно или свернулся ли Telegram
+            let appOpened = false;
+            window.addEventListener('blur', () => appOpened = true);
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) appOpened = true;
+            });
+
+            // Пробиваем песочницу iOS
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = appScheme;
+            document.body.appendChild(iframe);
+
+            // Дублируем стандартным методом для страховки
+            setTimeout(() => { window.location.href = appScheme; }, 100);
+
+            // 4. ПЕРЕХОД В МАГАЗИН (если приложения нет)
+            setTimeout(() => {
+                // Если фокус на окне остался, значит приложение не запустилось
+                if (!appOpened && !document.hidden) {
+                    WebApp.openLink(storeLink);
+                }
+            }, 2500);
         }
     </script>
 </body>
